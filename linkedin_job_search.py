@@ -13,6 +13,7 @@ import sys
 import time
 import urllib.parse
 from datetime import datetime
+from typing import Dict, List, Optional, Set
 
 import requests
 from bs4 import BeautifulSoup
@@ -66,13 +67,13 @@ HEADERS = {
 }
 
 
-def build_query(role_kw: list[str], industry_kw: list[str]) -> str:
+def build_query(role_kw: List[str], industry_kw: List[str]) -> str:
     """Build a Boolean search query string.
 
     Produces:
         ("kw1" OR "kw2" ...) AND ("kw3" OR "kw4" ...)
     """
-    def _or_group(terms: list[str]) -> str:
+    def _or_group(terms: List[str]) -> str:
         quoted = [f'"{t}"' for t in terms]
         return "(" + " OR ".join(quoted) + ")"
 
@@ -93,7 +94,7 @@ def build_url(query: str, time_filter: str = "24h",
     return base + urllib.parse.urlencode(params)
 
 
-def fetch_page(url: str, retries: int = 3, delay: float = 2.0) -> str | None:
+def fetch_page(url: str, retries: int = 3, delay: float = 2.0) -> Optional[str]:
     """Fetch a page with retries and exponential backoff."""
     for attempt in range(retries):
         try:
@@ -113,7 +114,7 @@ def fetch_page(url: str, retries: int = 3, delay: float = 2.0) -> str | None:
     return None
 
 
-def parse_jobs(html: str) -> list[dict]:
+def parse_jobs(html: str) -> List[Dict]:
     """Extract job cards from LinkedIn public search results HTML."""
     soup = BeautifulSoup(html, "html.parser")
     jobs = []
@@ -155,9 +156,9 @@ def parse_jobs(html: str) -> list[dict]:
 
 def search_linkedin(query: str, time_filter: str = "24h",
                     location: str = "United States",
-                    max_pages: int = 5) -> list[dict]:
+                    max_pages: int = 5) -> List[Dict]:
     """Run a paginated LinkedIn public job search."""
-    all_jobs: list[dict] = []
+    all_jobs = []
     per_page = 25
 
     for page in range(max_pages):
@@ -185,10 +186,10 @@ def search_linkedin(query: str, time_filter: str = "24h",
     return all_jobs
 
 
-def deduplicate(jobs: list[dict]) -> list[dict]:
+def deduplicate(jobs: List[Dict]) -> List[Dict]:
     """Remove duplicate listings by URL."""
-    seen: set[str] = set()
-    unique: list[dict] = []
+    seen = set()  # type: Set[str]
+    unique = []  # type: List[Dict]
     for job in jobs:
         key = job["url"]
         if key not in seen:
@@ -197,8 +198,8 @@ def deduplicate(jobs: list[dict]) -> list[dict]:
     return unique
 
 
-def output_results(jobs: list[dict], fmt: str = "table",
-                   outfile: str | None = None) -> None:
+def output_results(jobs: List[Dict], fmt: str = "table",
+                   outfile: Optional[str] = None) -> None:
     """Print or save results in the chosen format."""
     if not jobs:
         print("\nNo jobs found matching your criteria.")
