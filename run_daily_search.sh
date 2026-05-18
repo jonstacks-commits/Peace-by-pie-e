@@ -23,11 +23,27 @@ echo "Run: $TIMESTAMP $(date +%H:%M:%S)"     >> "$LOG_FILE"
     --output "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" \
     2>> "$LOG_FILE"
 
+echo "Finished search: $(date +%H:%M:%S)"    >> "$LOG_FILE"
+
+# Count results
+COUNT=$(tail -n +2 "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" 2>/dev/null | wc -l | tr -d ' ')
+
+# Push to Notion if config exists
+NOTION_SCRIPT="$SCRIPT_DIR/notion_integration.py"
+NOTION_CONFIG="$HOME/.linkedin_notion_config.json"
+NOTION_MSG=""
+if [ -f "$NOTION_CONFIG" ] && [ -f "$NOTION_SCRIPT" ]; then
+    echo "Pushing to Notion..." >> "$LOG_FILE"
+    /usr/bin/python3 "$NOTION_SCRIPT" \
+        --csv "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" \
+        2>> "$LOG_FILE"
+    NOTION_MSG=" + synced to Notion"
+fi
+
 echo "Finished: $(date +%H:%M:%S)"           >> "$LOG_FILE"
 echo "======================================" >> "$LOG_FILE"
 
-# Count results and send a macOS notification
-COUNT=$(tail -n +2 "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" 2>/dev/null | wc -l | tr -d ' ')
-osascript -e "display notification \"Found ${COUNT} new jobs today. CSV saved to Desktop/LinkedIn_Jobs/\" with title \"LinkedIn Job Search\"" 2>/dev/null
+# Send macOS notification
+osascript -e "display notification \"Found ${COUNT} new jobs today${NOTION_MSG}. CSV on Desktop.\" with title \"LinkedIn Job Search\"" 2>/dev/null
 
 exit 0
