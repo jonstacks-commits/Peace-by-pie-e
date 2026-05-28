@@ -1,49 +1,50 @@
 #!/bin/bash
-# ============================================================================
-# run_daily_search.sh — Daily LinkedIn Job Search Runner
-# Intended to be called by macOS launchd at 7:00 AM each day.
-# ============================================================================
-
+# run_daily_search.sh - Daily LinkedIn Job Search Runner (3 Resume Tracks)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SCRIPT="$SCRIPT_DIR/linkedin_job_search.py"
+SEARCH_SCRIPT="$SCRIPT_DIR/linkedin_job_search.py"
+NOTION_SCRIPT="$SCRIPT_DIR/notion_integration.py"
 OUTPUT_DIR="$HOME/Desktop/LinkedIn_Jobs"
 TIMESTAMP="$(date +%Y-%m-%d)"
-LOG_FILE="$OUTPUT_DIR/search.log"
-
-# Ensure output directory exists
-mkdir -p "$OUTPUT_DIR"
-
-echo "======================================" >> "$LOG_FILE"
-echo "Run: $TIMESTAMP $(date +%H:%M:%S)"     >> "$LOG_FILE"
-
-# Run the search — save CSV and JSON to Desktop folder
-/usr/bin/python3 "$SCRIPT" \
-    --time 24h \
-    --format csv \
-    --output "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" \
-    2>> "$LOG_FILE"
-
-echo "Finished search: $(date +%H:%M:%S)"    >> "$LOG_FILE"
-
-# Count results
-COUNT=$(tail -n +2 "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" 2>/dev/null | wc -l | tr -d ' ')
-
-# Push to Notion if config exists
-NOTION_SCRIPT="$SCRIPT_DIR/notion_integration.py"
+LOG_FILE="$HOME/Peace-by-pie-e/search.log"
 NOTION_CONFIG="$HOME/.linkedin_notion_config.json"
-NOTION_MSG=""
-if [ -f "$NOTION_CONFIG" ] && [ -f "$NOTION_SCRIPT" ]; then
-    echo "Pushing to Notion..." >> "$LOG_FILE"
-    /usr/bin/python3 "$NOTION_SCRIPT" \
-        --csv "$OUTPUT_DIR/jobs_${TIMESTAMP}.csv" \
-        2>> "$LOG_FILE"
-    NOTION_MSG=" + synced to Notion"
-fi
 
-echo "Finished: $(date +%H:%M:%S)"           >> "$LOG_FILE"
-echo "======================================" >> "$LOG_FILE"
+mkdir -p "$OUTPUT_DIR"
+echo "========================================" >> "$LOG_FILE"
+echo "Run: $TIMESTAMP $(date +%H:%M:%S)" >> "$LOG_FILE"
 
-# Send macOS notification
-osascript -e "display notification \"Found ${COUNT} new jobs today${NOTION_MSG}. CSV on Desktop.\" with title \"LinkedIn Job Search\"" 2>/dev/null
+TOTAL=0
 
+run_track() {
+    local track_name=$1
+    local resume_version=$2
+    local output_file="$OUTPUT_DIR/jobs_${track_name}_${TIMESTAMP}.csv"
+    shift 2
+    echo "--- Track: $track_name ---" >> "$LOG_FILE"
+    /usr/bin/python3 "$SEARCH_SCRIPT" --time 24h --format csv --output "$output_file" "$@" 2>> "$LOG_FILE"
+    if [ -f "$output_file" ]; then
+        COUNT=$(tail -n +2 "$output_file" 2>/dev/null | wc -l | tr -d " ")
+        echo "Found $COUNT jobs for $track_name" >> "$LOG_FILE"
+        TOTAL=$((TOTAL + COUNT))
+        if [ -f "$NOTION_CONFIG" ] && [ -f "$NOTION_SCRIPT" ]; then
+            /usr/bin/python3 "$NOTION_SCRIPT" --csv "$output_file" --resume-version "$resume_version" 2>> "$LOG_FILE"
+        fi
+    fi
+}
+
+run_track "gtm_strategy" "Strategy" \
+    --extra-roles "GTM strategy" "go-to-market strategy" "market development" "platform strategy" "commercial strategy" "launch strategy" "market access strategy" \
+    --extra-industries "biotech" "biopharma" "life sciences" "genomics" "CRO" "CDMO"
+
+run_track "business_dev" "Business Development" \
+    --extra-roles "business development" "strategic alliances" "partnerships director" "VP partnerships" "alliance management" "corporate development" "BD director" \
+    --extra-industries "biotech" "biopharma" "life sciences" "genomics" "CRO" "CDMO"
+
+run_track "commercial_ops" "Operations" \
+    --extra-roles "commercial operations" "revenue operations" "sales operations" "CRM director" "RevOps" "sales enablement director" "forecast operations" \
+    --extra-industries "biotech" "biopharma" "life sciences" "genomics" "CRO" "CDMO"
+
+echo "Total new jobs: $TOTAL" >> "$LOG_FILE"
+echo "========================================" >> "$LOG_FILE"
+
+osascript -e "display notification \"Found $TOTAL new jobs today across 3 resume tracks.\" with title \"LinkedIn Job Search\"" 2>/dev/null
 exit 0

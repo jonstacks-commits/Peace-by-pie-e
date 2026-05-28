@@ -99,7 +99,7 @@ def query_existing_urls(api_key, database_id):
         data = resp.json()
         for page in data.get("results", []):
             props = page.get("properties", {})
-            url_prop = props.get("LinkedIn URL", {})
+            url_prop = props.get("Job URL", {})
             if url_prop.get("url"):
                 existing.add(url_prop["url"])
 
@@ -110,12 +110,62 @@ def query_existing_urls(api_key, database_id):
     return existing
 
 
-def build_page_properties(job, database_id):
+EXCLUDE_TITLE_KEYWORDS = [
+    "product manager",
+    "account executive",
+    "area sales",
+    "national sales manager",
+    "sales representative",
+    "sales exec",
+    "marketing manager",
+    "presales",
+    "pre-sales",
+    "recruiter",
+    "talent acquisition",
+    "financial advisor",
+    "investment",
+    "advertising sales",
+    "ecommerce",
+    "retail",
+    "cybersecurity",
+    "banking",
+    "insurance",
+    "real estate",
+    "chief of staff",
+    "data analyst",
+    "software engineer",
+]
+
+def is_excluded(job):
+    title = job.get("title", "").lower()
+    return any(kw.lower() in title for kw in EXCLUDE_TITLE_KEYWORDS)
+
+ALLOWED_LOCATION_KEYWORDS = [
+    "remote",
+    "hybrid",
+    "denver",
+    "colorado",
+    "united states",
+    "anywhere",
+    "co,",
+    ", co",
+]
+
+def is_location_match(job):
+    location = job.get("location", "").lower()
+    title = job.get("title", "").lower()
+    if not location or location == "n/a":
+        return True
+    if "remote" in title:
+        return True
+    return any(kw in location for kw in ALLOWED_LOCATION_KEYWORDS)
+
+def build_page_properties(job, database_id, resume_version=None):
     """Build Notion page properties matching the Opportunity board template."""
     title_text = "%s - %s" % (job["company"], job["title"])
 
     properties = {
-        "Name": {
+        "Company Opportunity Role Title": {
             "title": [
                 {
                     "text": {
@@ -133,46 +183,20 @@ def build_page_properties(job, database_id):
                 }
             ]
         },
-        "Role": {
-            "rich_text": [
-                {
-                    "text": {
-                        "content": job.get("title", "N/A")
-                    }
-                }
-            ]
-        },
-        "Location": {
-            "rich_text": [
-                {
-                    "text": {
-                        "content": job.get("location", "N/A")
-                    }
-                }
-            ]
-        },
-        "LinkedIn URL": {
-            "url": job.get("url", None)
-        },
         "Source": {
             "select": {
                 "name": "LinkedIn"
             }
         },
+        "Job URL": {
+            "url": job.get("url", None)
+        },
+        **({"Resume Version": {"select": {"name": resume_version}}} if resume_version else {}),
         "Status": {
             "select": {
-                "name": "New"
+                "name": "Research"
             }
-        },
-        "Posted": {
-            "rich_text": [
-                {
-                    "text": {
-                        "content": job.get("posted", "N/A")
-                    }
-                }
-            ]
-        },
+        }
     }
 
     return properties
@@ -210,14 +234,13 @@ def build_page_body():
     return children
 
 
-def create_notion_page(api_key, database_id, job):
+def create_notion_page(api_key, database_id, job, resume_version=None):
     """Create a single Notion page for a job listing."""
     headers = notion_headers(api_key)
 
     payload = {
         "parent": {"database_id": database_id},
-        "icon": {"type": "emoji", "emoji": "◦"},
-        "properties": build_page_properties(job, database_id),
+        "properties": build_page_properties(job, database_id, resume_version=resume_version),
         "children": build_page_body(),
     }
 
@@ -231,7 +254,7 @@ def create_notion_page(api_key, database_id, job):
     return resp.status_code, resp.json()
 
 
-def push_jobs_to_notion(jobs, config=None):
+def push_jobs_to_notion(jobs, config=None, resume_version=None):
     """Push a list of job dicts to Notion. Returns (created, skipped, failed) counts."""
     if config is None:
         config = load_config()
@@ -256,7 +279,17 @@ def push_jobs_to_notion(jobs, config=None):
             skipped += 1
             continue
 
-        status_code, resp_data = create_notion_page(api_key, database_id, job)
+        if is_excluded(job):
+            print("  [EXCL] %s (title excluded)" % title, file=sys.stderr)
+            failed += 1
+            continue
+
+        if not is_location_match(job):
+            print("  [LOC]  %s (%s)" % (title, job.get("location", "")), file=sys.stderr)
+            failed += 1
+            continue
+
+        status_code, resp_data = create_notion_page(api_key, database_id, job, resume_version=resume_version)
 
         if status_code == 200:
             print("  [OK]   %s" % title, file=sys.stderr)
@@ -266,7 +299,7 @@ def push_jobs_to_notion(jobs, config=None):
             retry_after = float(resp_data.get("retry_after", 1))
             print("  [WAIT] Rate limited, waiting %.0fs..." % retry_after, file=sys.stderr)
             time.sleep(retry_after)
-            status_code, resp_data = create_notion_page(api_key, database_id, job)
+            status_code, resp_data = create_notion_page(api_key, database_id, job, resume_version=resume_version)
             if status_code == 200:
                 created += 1
                 existing_urls.add(url)
@@ -298,6 +331,10 @@ def main():
     parser.add_argument(
         "--csv", default=None,
         help="Path to a CSV file from linkedin_job_search.py to import",
+    )
+    parser.add_argument(
+        "--resume-version", default=None,
+        help="Resume track label (e.g. GTM Strategy, Business Development, Commercial Operations)",
     )
     parser.add_argument(
         "--test", action="store_true",
@@ -340,7 +377,7 @@ def main():
         print("Reading jobs from stdin (JSON)...", file=sys.stderr)
         jobs = json.load(sys.stdin)
 
-    created, skipped, failed = push_jobs_to_notion(jobs, config)
+    created, skipped, failed = push_jobs_to_notion(jobs, config, resume_version=args.resume_version)
 
     print(file=sys.stderr)
     print("=== Notion Sync Complete ===", file=sys.stderr)

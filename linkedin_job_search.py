@@ -22,22 +22,51 @@ from bs4 import BeautifulSoup
 # Search configuration
 # ---------------------------------------------------------------------------
 
-ROLE_KEYWORDS = [
-    "strategic accounts",
-    "account director",
-    "site enablement",
-    "launch readiness",
-    "treatment center",
-    "site activation",
+# Track 1: Strategy (GTM, market development, platform strategy)
+GTM_ROLE_KEYWORDS = [
+    "GTM strategy",
+    "go-to-market strategy",
+    "market development",
+    "platform strategy",
+    "commercial strategy",
+    "launch strategy",
+    "market access strategy",
+]
+
+# Track 2: Business Development (BD, partnerships, alliances only)
+BD_ROLE_KEYWORDS = [
+    "business development",
+    "strategic alliances",
+    "partnerships director",
+    "VP partnerships",
+    "alliance management",
+    "corporate development",
+    "BD director",
+]
+
+# Track 3: Commercial Operations (RevOps, CRM, sales ops only)
+COMOPS_ROLE_KEYWORDS = [
+    "commercial operations",
+    "revenue operations",
+    "sales operations",
+    "CRM director",
+    "RevOps",
+    "sales enablement director",
+    "forecast operations",
 ]
 
 INDUSTRY_KEYWORDS = [
     "biotech",
+    "biopharma",
     "pharma",
+    "life sciences",
     "cell and gene",
-    "CRISPR",
-    "genome editing",
+    "genomics",
+    "CRO",
+    "CDMO",
 ]
+
+ROLE_KEYWORDS = GTM_ROLE_KEYWORDS + BD_ROLE_KEYWORDS + COMOPS_ROLE_KEYWORDS
 
 # LinkedIn time filter values (f_TPR parameter)
 TIME_FILTERS = {
@@ -277,8 +306,8 @@ def main():
     )
     args = parser.parse_args()
 
-    role_kw = ROLE_KEYWORDS + args.extra_roles
-    industry_kw = INDUSTRY_KEYWORDS + args.extra_industries
+    role_kw = args.extra_roles if args.extra_roles else ROLE_KEYWORDS
+    industry_kw = args.extra_industries if args.extra_industries else INDUSTRY_KEYWORDS
 
     query = build_query(role_kw, industry_kw)
 
