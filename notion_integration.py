@@ -134,6 +134,16 @@ EXCLUDE_TITLE_KEYWORDS = [
     "chief of staff",
     "data analyst",
     "software engineer",
+    "portfolio marketing",
+    "senior manager, marketing",
+    "marketing senior manager",
+    "brand manager",
+    "product marketing",
+    "medical affairs",
+    "medical science",
+    "clinical specialist",
+    "field reimbursement",
+    "market access manager",
 ]
 
 def is_excluded(job):
