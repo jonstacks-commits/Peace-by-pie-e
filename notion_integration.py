@@ -144,7 +144,28 @@ EXCLUDE_TITLE_KEYWORDS = [
     "clinical specialist",
     "field reimbursement",
     "market access manager",
+    "growth analytic",
+    "sales analytic",
+    "data science",
+    "food service",
+    "facilities",
 ]
+
+
+EXCLUDE_COMPANIES = [
+    "aramark",
+    "sodexo",
+    "compass group",
+    "cintas",
+    "sysco",
+    "securitas",
+    "iqvia" ,
+    "staffing",
+]
+
+def is_excluded_company(job):
+    company = job.get("company", "").lower()
+    return any(kw.lower() in company for kw in EXCLUDE_COMPANIES)
 
 def is_excluded(job):
     title = job.get("title", "").lower()
@@ -291,6 +312,11 @@ def push_jobs_to_notion(jobs, config=None, resume_version=None):
 
         if is_excluded(job):
             print("  [EXCL] %s (title excluded)" % title, file=sys.stderr)
+            failed += 1
+            continue
+
+        if is_excluded_company(job):
+            print("  [CO]   %s (company excluded)" % title, file=sys.stderr)
             failed += 1
             continue
 
