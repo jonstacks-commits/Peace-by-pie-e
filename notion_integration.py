@@ -145,6 +145,22 @@ EXCLUDE_TITLE_KEYWORDS = [
     "field reimbursement",
     "market access manager",
     "growth analytic",
+    "field market",
+    "field sales",
+    "field reimbursement",
+    "northeast",
+    "southeast",
+    "northwest",
+    "southwest",
+    "mid-atlantic",
+    "midatlantic",
+    "new england",
+    "territory manager",
+    "territory director",
+    "regional manager",
+    "area manager",
+    "district manager",
+    "district director",
     "sales analytic",
     "data science",
     "food service",
@@ -189,6 +205,16 @@ def is_location_match(job):
         return True
     if "remote" in title:
         return True
+    # Reject if specific non-target states appear in title
+    excluded_regions = [
+        "northeast", "southeast", "mid-atlantic", "new england",
+        "- ma,", "- ny,", "- nj,", "- pa,", "- md",
+        "boston", "new york", "philadelphia", "baltimore", "washington, d.c",
+        "chicago", "atlanta", "dallas", "houston", "miami",
+        "san francisco", "los angeles", "seattle",
+    ]
+    if any(r in title for r in excluded_regions):
+        return False
     return any(kw in location for kw in ALLOWED_LOCATION_KEYWORDS)
 
 def build_page_properties(job, database_id, resume_version=None):
