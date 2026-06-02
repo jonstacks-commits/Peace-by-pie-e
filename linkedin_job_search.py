@@ -85,6 +85,20 @@ EXPERIENCE_LEVELS = {
     "executive": "6",
 }
 
+# LinkedIn industry filter codes (f_I parameter)
+# Multiple industries = comma-separated values
+LIFE_SCIENCES_INDUSTRIES = [
+    "8",    # Biotechnology
+    "19",   # Pharmaceuticals
+    "14",   # Hospital & Health Care
+    "13",   # Medical Devices
+    "139",  # Medical Practice
+    "147",  # Research
+    "11",   # Bioinformatics (maps to Computer Software but used in biotech context)
+    "2099", # Pharmaceutical Manufacturing
+    "1393", # Biotechnology Research
+]
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -117,6 +131,7 @@ def build_url(query: str, time_filter: str = "24h",
         "keywords": query,
         "location": location,
         "f_TPR": TIME_FILTERS.get(time_filter, TIME_FILTERS["24h"]),
+        "f_I": ",".join(LIFE_SCIENCES_INDUSTRIES),
         "start": str(start),
     }
     base = "https://www.linkedin.com/jobs/search/?"
