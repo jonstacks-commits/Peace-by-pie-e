@@ -212,6 +212,47 @@ def is_excluded_company(job):
     company = job.get("company", "").lower()
     return any(kw.lower() in company for kw in EXCLUDE_COMPANIES)
 
+
+ALLOWED_COMPANY_KEYWORDS = [
+    # Biopharma / Pharma
+    "pharma", "pharmaceutical", "biopharmaceutical", "biopharma",
+    "therapeutics", "therapy", "oncology", "immunology", "neuroscience",
+    "biologics", "biologic", "antibody", "vaccine", "drug", "medicine",
+    # Biotech
+    "biotech", "biotechnology", "bioscience", "biosciences", "genomics",
+    "genome", "genetic", "genetics", "sequencing", "crispr", "cell therapy",
+    "gene therapy", "proteomics",
+    # Life Sciences Tools
+    "life sciences", "life science", "laboratory", "labs", "diagnostics",
+    "diagnostic", "assay", "reagent", "informatics", "instrument",
+    # CRO / CDMO
+    "cro", "cdmo", "contract research", "contract manufacturing",
+    "clinical research", "clinical trials", "clinical services",
+    # Medtech / Medical Devices
+    "medical", "medtech", "surgical", "device", "devices", "imaging",
+    "pathology", "radiology", "orthopedic",
+    # Healthcare
+    "healthcare", "health sciences", "health systems",
+    "precision medicine", "personalized medicine",
+    # Named companies
+    "thermo fisher", "danaher", "illumina", "agilent", "waters", "bruker",
+    "becton dickinson", "bd ", "abbott", "roche", "novartis", "pfizer",
+    "merck", "lilly", "amgen", "genentech", "regeneron", "biogen",
+    "gilead", "vertex", "iqvia", "covance", "labcorp", "icon", "syneos",
+    "charles river", "eurofins", "bio-rad", "qiagen", "promega",
+    "perkinelmer", "veeva", "medidata", "benchling", "dotmatics",
+    "codebreaker", "l7 informatics", "medtronic", "catalent",
+    "henry schein", "cardinal health", "mckesson", "baxter", "stryker",
+    "zimmer", "edwards lifesciences", "hologic", "intuitive surgical",
+    "boston scientific", "hinge health", "bridgebio",
+]
+
+def is_allowed_company(job):
+    company = job.get("company", "").lower()
+    if not company:
+        return True
+    return any(kw.lower() in company for kw in ALLOWED_COMPANY_KEYWORDS)
+
 def is_excluded(job):
     title = job.get("title", "").lower()
     return any(kw.lower() in title for kw in EXCLUDE_TITLE_KEYWORDS)
@@ -374,6 +415,11 @@ def push_jobs_to_notion(jobs, config=None, resume_version=None):
 
         if is_excluded_company(job):
             print("  [CO]   %s (company excluded)" % title, file=sys.stderr)
+            failed += 1
+            continue
+
+        if not is_allowed_company(job):
+            print("  [IND]  %s - %s (not life sciences)" % (job.get("company",""), job.get("title","")), file=sys.stderr)
             failed += 1
             continue
 
