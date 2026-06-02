@@ -245,6 +245,16 @@ ALLOWED_COMPANY_KEYWORDS = [
     "henry schein", "cardinal health", "mckesson", "baxter", "stryker",
     "zimmer", "edwards lifesciences", "hologic", "intuitive surgical",
     "boston scientific", "hinge health", "bridgebio",
+    "eversana", "syneos", "inivata", "iqvia", "parexel",
+    "vaxcyte", "idexx", "orca bio", "noctrix", "insmed",
+    "recordati", "axtria", "beghou", "kmk consulting",
+    "spectrum science", "precision aq", "synapticure",
+    "dyne therapeutics", "averitas",
+    "patterson companies",
+    "henry schein",
+    "biospace",
+    "precision medicine", "navigator", "alphanext",
+    "biospace", "fierce pharma", "stat news",
 ]
 
 def is_allowed_company(job):
