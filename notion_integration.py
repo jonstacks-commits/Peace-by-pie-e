@@ -206,6 +206,17 @@ EXCLUDE_COMPANIES = [
     "holdings",
     "consulting group",
     "advisory group",
+    "ladders",
+    "jobgether",
+    "remotehunter",
+    "swooped",
+    "job searchi",
+    "a hiring company",
+    "ziprecruiter",
+    "indeed",
+    "talentally",
+    "pacer group",
+    "inizio engage",
 ]
 
 def is_excluded_company(job):
@@ -255,6 +266,9 @@ ALLOWED_COMPANY_KEYWORDS = [
     "biospace",
     "precision medicine", "navigator", "alphanext",
     "biospace", "fierce pharma", "stat news",
+    "gsk", "glaxosmithkline", "astrazeneca", "novonordisk", "novo nordisk",
+    "takeda", "sanofi", "bayer", "boehringer", "eisai", "otsuka",
+    "daiichi", "astellas", "ucb", "ipsen", "servier",
 ]
 
 def is_allowed_company(job):
