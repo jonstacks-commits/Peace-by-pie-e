@@ -217,6 +217,10 @@ EXCLUDE_COMPANIES = [
     "talentally",
     "pacer group",
     "inizio engage",
+    "confidential",
+    "that startup job",
+    "corissa nunn",
+    "pax recruiting",
 ]
 
 def is_excluded_company(job):
